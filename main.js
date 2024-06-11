@@ -8,11 +8,11 @@ let foodX, foodY;
 let snakeX = 5, snakeY = 5;
 let velocityX = 0, velocityY = 0;
 let snakeBody = [];
-let setIntervalId; 
+let setIntervalId;
 let score = 0;
 
 let highScore = localStorage.getItem("high-score") || 0;
-highScoreElement.innerHTML = `Pontuação mais alta: ${highScore}`;
+highScoreElement.innerHTML = `High Score: ${highScore}`;
 
 const updateFoodPosition = () => {
     foodX = Math.floor(Math.random() * 30) + 1;
@@ -20,7 +20,7 @@ const updateFoodPosition = () => {
 }
 
 const handleGameOver = () => {
-    clearInterval(setIntervalId); 
+    clearInterval(setIntervalId);
     alert('Você Perdeu!! Clique em OK para reiniciar...');
     location.reload();
 }
@@ -43,6 +43,45 @@ const changeDirection = e => {
 
 controls.forEach(button => button.addEventListener("click", () => changeDirection({ key: button.dataset.key })));
 
+const getDistance = (x1, y1, x2, y2) => {
+    return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+}
+
+const findNextMove = () => {
+    let possibleMoves = [
+        { x: 0, y: -1, key: "ArrowUp" },
+        { x: 0, y: 1, key: "ArrowDown" },
+        { x: -1, y: 0, key: "ArrowLeft" },
+        { x: 1, y: 0, key: "ArrowRight" }
+    ];
+
+    let bestMove = possibleMoves[0];
+    let bestDistance = getDistance(snakeX + bestMove.x, snakeY + bestMove.y, foodX, foodY);
+
+    for (let move of possibleMoves) {
+        let newX = snakeX + move.x;
+        let newY = snakeY + move.y;
+        let distance = getDistance(newX, newY, foodX, foodY);
+
+        // Verificar se o movimento não faz a cobra bater nas bordas ou no próprio corpo
+        if (newX > 0 && newX <= 30 && newY > 0 && newY <= 30 && distance < bestDistance) {
+            let collision = false;
+            for (let segment of snakeBody) {
+                if (segment[0] === newX && segment[1] === newY) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (!collision) {
+                bestMove = move;
+                bestDistance = distance;
+            }
+        }
+    }
+
+    return bestMove;
+}
+
 const initGame = () => {
     if (gameOver) return handleGameOver();
     let html = `<div class="food" style="grid-area: ${foodY}/${foodX}"></div>`;
@@ -53,14 +92,16 @@ const initGame = () => {
         score++;
         highScore = score >= highScore ? score : highScore;
         localStorage.setItem('high-score', highScore);
-        scoreElement.innerText = `Pontuação: ${score}`;
-        highScoreElement.innerText = `Pontuação mais alta: ${highScore}`;
+        scoreElement.innerText = `Score: ${score}`;
+        highScoreElement.innerText = `High Score: ${highScore}`;
     }
-    snakeX += velocityX;
-    snakeY += velocityY;
 
-    if (snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30){
-        gameOver = true
+    let nextMove = findNextMove();
+    snakeX += nextMove.x;
+    snakeY += nextMove.y;
+
+    if (snakeX <= 0 || snakeX > 30 || snakeY <= 0 || snakeY > 30) {
+        gameOver = true;
     }
 
     for (let i = snakeBody.length - 1; i > 0; i--) {
